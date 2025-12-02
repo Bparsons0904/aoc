@@ -1,0 +1,11 @@
+package main
+
+import (
+	"log"
+
+	"aoc/challenges"
+)
+
+func main() {
+	log.Println(challenges.Day1Part1())
+}

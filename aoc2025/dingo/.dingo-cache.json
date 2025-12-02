@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "dingoVersion": "0.5.0",
+  "packagePath": "/home/bobparsons/Development/aoc/aoc2025/dingo",
+  "lastScanTime": "2025-12-01T16:49:12-06:00",
+  "scanDuration": "753.925µs",
+  "localFunctions": [
+    "main"
+  ],
+  "fileHashes": {
+    "/home/bobparsons/Development/aoc/aoc2025/dingo/main.dingo": 3322185771305670196
+  },
+  "files": [
+    "/home/bobparsons/Development/aoc/aoc2025/dingo/main.dingo"
+  ],
+  "hasUnqualifiedImports": false
+}

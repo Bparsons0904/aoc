@@ -1,0 +1,7 @@
+package challenges
+
+import "log/slog"
+
+func Day1() {
+	slog.Info("day1")
+}
