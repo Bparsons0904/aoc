@@ -10,6 +10,7 @@ func main() {
 	switch time.Now().Day() {
 	case 1:
 		challenges.Day1()
+		challenges.Day1_1()
 	case 2:
 		challenges.Day2()
 	case 3:

@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"aoc/utilities"
+
+	logger "github.com/Bparsons0904/goLogger"
 )
 
 type DialInstruction struct {
@@ -27,6 +29,10 @@ type DialList struct {
 }
 
 func Day1() {
+	log := logger.New("Day1")
+	done := log.Timer("Day1 Timer")
+	defer done()
+
 	files := utilities.ReadFile("day1.part1")
 
 	var dialInstructions DialInstructions
@@ -114,4 +120,47 @@ func (di *DialInstructions) parseInstructions(file []string) {
 
 		*di = append(*di, instruction)
 	}
+}
+
+func Day1_1() {
+	log := logger.New("Day1_1")
+	done := log.Timer("Timer")
+	defer done()
+
+	files := utilities.ReadFile("day1.part1")
+
+	var dialInstructions DialInstructions
+	dialInstructions.parseInstructions(files)
+
+	step1Count := 0
+	step2Count := 0
+	currentValue := 50
+
+	for _, dialInstruction := range dialInstructions {
+		switch dialInstruction.Direction {
+		case "R":
+			newValue := currentValue + dialInstruction.Step
+			if newValue >= 100 {
+				if currentValue == 0 {
+					step2Count += dialInstruction.Step / 100
+				} else {
+					step2Count += (dialInstruction.Step + currentValue) / 100
+				}
+			}
+			currentValue = newValue % 100
+		case "L":
+			newValue := currentValue - dialInstruction.Step
+			if currentValue == 0 {
+				step2Count += dialInstruction.Step / 100
+			} else if dialInstruction.Step >= currentValue {
+				step2Count += (dialInstruction.Step-currentValue)/100 + 1
+			}
+			currentValue = ((newValue % 100) + 100) % 100
+		}
+		if currentValue == 0 {
+			step1Count++
+		}
+	}
+
+	slog.Info("day1", "part1", step1Count, "part2", step2Count)
 }
