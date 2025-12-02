@@ -24,7 +24,6 @@ type Dial struct {
 type DialList struct {
 	Head *Dial
 	Tail *Dial
-	Size int
 }
 
 func Day1() {
@@ -97,7 +96,6 @@ func (d *DialList) buildLinkedList() {
 
 		d.Tail = node
 		prevNode = node
-		d.Size++
 	}
 
 	d.Tail.Next = d.Head
