@@ -2,12 +2,13 @@ package challenges
 
 import (
 	"log"
-	"log/slog"
 	"math"
 	"strconv"
 	"strings"
 
 	"aoc/utilities"
+
+	logger "github.com/Bparsons0904/goLogger"
 )
 
 type ProductIDRange struct {
@@ -16,14 +17,39 @@ type ProductIDRange struct {
 }
 
 func Day2() {
-	slog.Info("day2")
+	log := logger.New("Day2")
 
 	productIDRanges := processDay2()
 
+	part1Timer := log.Timer("Part 1 Timer")
 	part1Count := calculatePart1(productIDRanges)
-	part2Count := calculatePart2(productIDRanges)
+	part1Timer()
 
-	slog.Info("Day 2", "part1", part1Count, "part2", part2Count)
+	part2Timer := log.Timer("Part 2 Timer")
+	part2Count := calculatePart2(productIDRanges)
+	part2Timer()
+
+	part2_1Timer := log.Timer("Part 2.1 Timer")
+	part2_1Count := calculatePart2_1(productIDRanges)
+	part2_1Timer()
+
+	log.Info("Day 2", "part1", part1Count, "part2", part2Count, "part2_1", part2_1Count)
+}
+
+func calculatePart2_1(productIDRanges []ProductIDRange) (result int) {
+	for _, productIDRange := range productIDRanges {
+		for value := productIDRange.Min; value <= productIDRange.Max; value++ {
+			iString := strconv.Itoa(value)
+			for j := 0; j <= len(iString)/2; j++ {
+				if strings.ReplaceAll(iString[j+1:], string(iString[:j+1]), "") == "" {
+					result += value
+					break
+				}
+			}
+		}
+	}
+
+	return
 }
 
 func calculatePart2(productIDRanges []ProductIDRange) int {
