@@ -33,15 +33,52 @@ func Day2() {
 	part2_1Count := calculatePart2_1(productIDRanges)
 	part2_1Timer()
 
-	log.Info("Day 2", "part1", part1Count, "part2", part2Count, "part2_1", part2_1Count)
+	part2_2Timer := log.Timer("Part 2.2 Timer")
+	part2_2Count := calculatePart2_2(productIDRanges)
+	part2_2Timer()
+
+	part2_3Timer := log.Timer("Part 2.3 Timer")
+	part2_3Count := calculatePart2_3(productIDRanges)
+	part2_3Timer()
+
+	log.Info(
+		"Day 2",
+		"part1",
+		part1Count,
+		"part2",
+		part2Count,
+		"part2_1",
+		part2_1Count,
+		"part2_2",
+		part2_2Count,
+		"part2_3",
+		part2_3Count,
+	)
 }
 
-func calculatePart2_1(productIDRanges []ProductIDRange) (result int) {
+// Claude implementation
+func calculatePart2_2(productIDRanges []ProductIDRange) (result int) {
 	for _, productIDRange := range productIDRanges {
 		for value := productIDRange.Min; value <= productIDRange.Max; value++ {
 			iString := strconv.Itoa(value)
-			for j := 0; j <= len(iString)/2; j++ {
-				if strings.ReplaceAll(iString[j+1:], string(iString[:j+1]), "") == "" {
+			strLen := len(iString)
+
+			for patternLen := 1; patternLen <= strLen/2; patternLen++ {
+				if strLen%patternLen != 0 {
+					continue
+				}
+
+				pattern := iString[:patternLen]
+				isRepeating := true
+
+				for i := patternLen; i < strLen; i += patternLen {
+					if iString[i:i+patternLen] != pattern {
+						isRepeating = false
+						break
+					}
+				}
+
+				if isRepeating {
 					result += value
 					break
 				}
@@ -52,6 +89,47 @@ func calculatePart2_1(productIDRanges []ProductIDRange) (result int) {
 	return
 }
 
+// Geminis implementation
+func calculatePart2_3(productIDRanges []ProductIDRange) (result int) {
+	for _, productIDRange := range productIDRanges {
+		for value := productIDRange.Min; value <= productIDRange.Max; value++ {
+			s := strconv.Itoa(value)
+			n := len(s)
+			if n < 2 {
+				continue
+			}
+
+			// This is a known trick to find the smallest period of a string.
+			// We create a new string by concatenating s with itself, then
+			// search for s within this new string, starting from the second character.
+			// The index of the first match + 1 gives the length of the repeating pattern (period).
+			if period := strings.Index((s + s)[1:], s) + 1; period > 0 && period < n {
+				result += value
+			}
+		}
+	}
+
+	return
+}
+
+// Combo Bob and Derek implementation
+func calculatePart2_1(productIDRanges []ProductIDRange) (result int) {
+	for _, productIDRange := range productIDRanges {
+		for value := productIDRange.Min; value <= productIDRange.Max; value++ {
+			iString := strconv.Itoa(value)
+			for j := 1; j <= len(iString)/2; j++ {
+				if strings.ReplaceAll(iString[j:], string(iString[:j]), "") == "" {
+					result += value
+					break
+				}
+			}
+		}
+	}
+
+	return
+}
+
+// My implementation
 func calculatePart2(productIDRanges []ProductIDRange) int {
 	result := 0
 
