@@ -32,37 +32,11 @@ func calculatePart2(productIDRanges []ProductIDRange) int {
 	for _, productIDRange := range productIDRanges {
 		for i := productIDRange.Min; i <= productIDRange.Max; i++ {
 			iString := strconv.Itoa(i)
-			// slog.Info("1st level", "i", i, "iString", iString)
-			// OuterLoop:
-			// for j := 0; j <= len(iString)-1; j++ {
-			// 	// slog.Info("2nd level", "j", j, "toCheck", toCheck)
-			// 	for k := j + 1; k <= len(iString)-j+0; k += 1 {
-			// 		toCheck := string(iString[j : j+1])
-			// 		beingChecked := string(iString[k : k+len(toCheck)])
-			// 		slog.Info("3rd level", "toCheck", toCheck, "beingChecked", beingChecked)
-			// 		if toCheck != beingChecked {
-			// 			// slog.Info(
-			// 			// 	"We didn't find a match",
-			// 			// 	"toCheck",
-			// 			// 	toCheck,
-			// 			// 	"beingChecked",
-			// 			// 	beingChecked,
-			// 			// )
-			// 			// break OuterLoop
-			// 		}
-			// 	}
-			// 	slog.Info("We found a match", "iString", iString)
-			// 	break
-			// }
 			for j := 0; j <= len(iString)-2; j++ {
 				toCheck := string(iString[:j+1])
 				expectedCount := int(math.Ceil(float64(len(iString)) / float64(len(toCheck))))
 				count := strings.Count(iString, toCheck)
 				if count >= 2 && count == expectedCount {
-					// slog.Info("3rd level", "toCheck", toCheck)
-					// slog.Info("3rd level", "expectedCount", expectedCount)
-					// slog.Info("3rd level", "count", count)
-					slog.Info("We found a match", "iString", iString)
 					result += i
 					break
 				}
