@@ -38,6 +38,15 @@ func New(filename string) *Grid {
 	return grid
 }
 
+func (g *Grid) Print() {
+	for _, row := range g.Map {
+		for _, char := range row {
+			print(string(char))
+		}
+		print("\n")
+	}
+}
+
 func (g *Grid) PositionContainsObject(point Point, object rune) bool {
 	if g.PointWithinBounds(point) == false {
 		return false

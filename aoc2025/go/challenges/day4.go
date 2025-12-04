@@ -10,5 +10,5 @@ func Day4() {
 	slog.Info("day4")
 	grid := grid.New("day4.part0")
 
-	slog.Info("day4", "grid", grid)
+	grid.Print()
 }
