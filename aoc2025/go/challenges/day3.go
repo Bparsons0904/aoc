@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	"aoc/utilities"
 
@@ -19,15 +20,72 @@ func Day3() {
 
 	batteryPacks := processDay3File()
 
+	timer := log.Timer("Part 1 Timer")
 	part1Result := calculate2PackJoltage(batteryPacks)
-	log.Info("Results", "Part 1", part1Result)
+	timer()
+
+	timer = log.Timer("Part 2 Timer")
+	part2Result := calculate12PackJoltage(batteryPacks)
+	timer()
+
+	log.Info("Results", "Part 1", part1Result, "Part 2", part2Result)
+}
+
+func calculate12PackJoltage(batteryPacks []BatteryPack) int {
+	maxJoltage := 0
+	for _, batteryPack := range batteryPacks {
+		maxJoltage += batteryPack.getLargest12PackJoltage()
+	}
+
+	return maxJoltage
+}
+
+func (b BatteryPack) getLargest12PackJoltage() int {
+	maxJoltage := make([]int, 0, 12)
+
+	index := 0
+	iteration := 0
+	for {
+		if len(maxJoltage) == 12 {
+			break
+		}
+		maxFoundJoltage, endIndex := iterateBatteryPackCheck(b, index, iteration)
+		maxJoltage = append(maxJoltage, maxFoundJoltage)
+		index = endIndex + 1
+		iteration++
+	}
+
+	var string strings.Builder
+	for _, joltage := range maxJoltage {
+		string.WriteString(strconv.Itoa(joltage))
+	}
+
+	result, err := strconv.Atoi(string.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result
+}
+
+func iterateBatteryPackCheck(battery BatteryPack, startingIndex int, batterySize int) (int, int) {
+	maxFoundJoltage := 0
+	endIndex := startingIndex
+	stop := len(battery) - 11 + batterySize
+	for i := startingIndex; i < stop; i++ {
+		if battery[i] > maxFoundJoltage {
+			maxFoundJoltage = battery[i]
+			endIndex = i
+		}
+	}
+
+	return maxFoundJoltage, endIndex
 }
 
 func calculate2PackJoltage(batteryPacks []BatteryPack) int {
 	maxJoltage := 0
-	for i, batteryPack := range batteryPacks {
+	for _, batteryPack := range batteryPacks {
 		maxJoltage += batteryPack.getLargest2PackJoltage()
-		slog.Info("Battery Pack", "Index", i, "Joltage", batteryPack.getLargest2PackJoltage())
 	}
 
 	return maxJoltage
@@ -56,16 +114,6 @@ func (b BatteryPack) getLargest2PackJoltage() int {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	slog.Info(
-		"Max Joltage",
-		"Index",
-		index,
-		"Joltage First",
-		maxJoltageFirst,
-		"Joltage Second",
-		maxJoltageSecond,
-	)
 
 	return maxJoltage
 }
