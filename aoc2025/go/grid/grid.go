@@ -1,5 +1,14 @@
 package grid
 
+import (
+	"aoc/utilities"
+)
+
+const (
+	EMPTY      = '.'
+	PAPER_ROLL = '@'
+)
+
 type Point struct {
 	X int
 	Y int
@@ -21,13 +30,23 @@ type Grid struct {
 	Height  int
 	Current Point
 	Visited []Point
+	Map     [][]rune
 }
 
-func New(width, height int) *Grid {
-	return &Grid{
-		Width:  width,
-		Height: height,
+func New(filename string) *Grid {
+	grid := makeGrid(filename)
+	return grid
+}
+
+func (g *Grid) PositionContainsObject(point Point, object rune) bool {
+	if g.PointWithinBounds(point) == false {
+		return false
 	}
+	return g.Map[point.Y][point.X] == object
+}
+
+func (g *Grid) PointWithinBounds(point Point) bool {
+	return point.X < 0 || point.X >= g.Width || point.Y < 0 || point.Y >= g.Height
 }
 
 func (g *Grid) CanMoveRight() bool {
@@ -92,4 +111,22 @@ func (g *Grid) Move(direction Point) bool {
 	g.Current = point
 
 	return canMove
+}
+
+func makeGrid(filename string) *Grid {
+	file := utilities.ReadFile(filename)
+	gridMap := make([][]rune, len(file))
+
+	for i, row := range file {
+		gridMap[i] = make([]rune, len(row))
+		for j, char := range row {
+			gridMap[i][j] = char
+		}
+	}
+
+	return &Grid{
+		Width:  len(file[0]),
+		Height: len(file),
+		Map:    gridMap,
+	}
 }
