@@ -1,7 +1,6 @@
 package challenges
 
 import (
-	"fmt"
 	"log"
 	"log/slog"
 	"strconv"
@@ -21,35 +20,35 @@ func Day3() {
 	batteryPacks := processDay3File()
 
 	timer := log.Timer("Part 1 Timer")
-	part1Result := calculate2PackJoltage(batteryPacks)
+	part1Result := calculate12PackJoltage(batteryPacks, 2)
 	timer()
 
 	timer = log.Timer("Part 2 Timer")
-	part2Result := calculate12PackJoltage(batteryPacks)
+	part2Result := calculate12PackJoltage(batteryPacks, 12)
 	timer()
 
 	log.Info("Results", "Part 1", part1Result, "Part 2", part2Result)
 }
 
-func calculate12PackJoltage(batteryPacks []BatteryPack) int {
+func calculate12PackJoltage(batteryPacks []BatteryPack, batterySize int) int {
 	maxJoltage := 0
 	for _, batteryPack := range batteryPacks {
-		maxJoltage += batteryPack.getLargest12PackJoltage()
+		maxJoltage += batteryPack.getLargestPackJoltage(batterySize)
 	}
 
 	return maxJoltage
 }
 
-func (b BatteryPack) getLargest12PackJoltage() int {
-	maxJoltage := make([]int, 0, 12)
+func (b BatteryPack) getLargestPackJoltage(batterySize int) int {
+	maxJoltage := make([]int, 0, batterySize)
 
 	index := 0
 	iteration := 0
 	for {
-		if len(maxJoltage) == 12 {
+		if len(maxJoltage) == batterySize {
 			break
 		}
-		maxFoundJoltage, endIndex := iterateBatteryPackCheck(b, index, iteration)
+		maxFoundJoltage, endIndex := iterateBatteryPackCheck(b, index, iteration, batterySize)
 		maxJoltage = append(maxJoltage, maxFoundJoltage)
 		index = endIndex + 1
 		iteration++
@@ -68,10 +67,15 @@ func (b BatteryPack) getLargest12PackJoltage() int {
 	return result
 }
 
-func iterateBatteryPackCheck(battery BatteryPack, startingIndex int, batterySize int) (int, int) {
+func iterateBatteryPackCheck(
+	battery BatteryPack,
+	startingIndex int,
+	currentBatterySize int,
+	batterySize int,
+) (int, int) {
 	maxFoundJoltage := 0
 	endIndex := startingIndex
-	stop := len(battery) - 11 + batterySize
+	stop := len(battery) + currentBatterySize - (batterySize - 1)
 	for i := startingIndex; i < stop; i++ {
 		if battery[i] > maxFoundJoltage {
 			maxFoundJoltage = battery[i]
@@ -82,61 +86,21 @@ func iterateBatteryPackCheck(battery BatteryPack, startingIndex int, batterySize
 	return maxFoundJoltage, endIndex
 }
 
-func calculate2PackJoltage(batteryPacks []BatteryPack) int {
-	maxJoltage := 0
-	for _, batteryPack := range batteryPacks {
-		maxJoltage += batteryPack.getLargest2PackJoltage()
-	}
-
-	return maxJoltage
-}
-
-func (b BatteryPack) getLargest2PackJoltage() int {
-	maxJoltageFirst := 0
-	maxJoltageSecond := 0
-	index := 0
-
-	for i := 0; i < len(b)-1; i++ {
-		if b[i] > maxJoltageFirst {
-			maxJoltageFirst = b[i]
-			index = i
-		}
-	}
-
-	for i := index + 1; i < len(b); i++ {
-		if b[i] > maxJoltageSecond {
-			maxJoltageSecond = b[i]
-		}
-	}
-
-	stringedInt := fmt.Sprintf("%d%d", maxJoltageFirst, maxJoltageSecond)
-	maxJoltage, err := strconv.Atoi(stringedInt)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return maxJoltage
-}
-
 func processDay3File() []BatteryPack {
 	file := utilities.ReadFile("day3.part1")
 	var batteryPacks []BatteryPack
 	for _, file := range file {
-		batteryPacks = append(batteryPacks, getBatteryPack(file))
+		var batteryPack BatteryPack
+		for _, batteryString := range file {
+			battery, err := strconv.Atoi(string(batteryString))
+			if err != nil {
+				log.Fatal(err)
+			}
+			batteryPack = append(batteryPack, battery)
+		}
+
+		batteryPacks = append(batteryPacks, batteryPack)
 	}
 
 	return batteryPacks
-}
-
-func getBatteryPack(batteryPackString string) BatteryPack {
-	var batteryPack BatteryPack
-	for _, batteryString := range batteryPackString {
-		battery, err := strconv.Atoi(string(batteryString))
-		if err != nil {
-			log.Fatal(err)
-		}
-		batteryPack = append(batteryPack, battery)
-	}
-
-	return batteryPack
 }
