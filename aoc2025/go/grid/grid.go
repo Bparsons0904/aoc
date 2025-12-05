@@ -166,6 +166,10 @@ func (g *Grid) PrintVisitedSteps() {
 	}
 }
 
+func (g *Grid) SetObject(point Point, object rune) {
+	g.Map[point.Y][point.X] = object
+}
+
 func (g *Grid) PositionContainsObject(point Point, object rune) bool {
 	if g.PointWithinBounds(point) == false {
 		return false
@@ -174,7 +178,8 @@ func (g *Grid) PositionContainsObject(point Point, object rune) bool {
 }
 
 func (g *Grid) PointWithinBounds(point Point) bool {
-	return point.X < 0 || point.X >= g.Width || point.Y < 0 || point.Y >= g.Height
+	isOutOfBounds := point.X < 0 || point.X >= g.Width || point.Y < 0 || point.Y >= g.Height
+	return !isOutOfBounds
 }
 
 func (g *Grid) CanMoveRight() bool {
