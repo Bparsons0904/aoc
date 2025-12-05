@@ -28,6 +28,10 @@ const (
 	START       = 'S'
 )
 
+var DIRECTIONS = []Point{
+	LEFT, RIGHT, UP, DOWN, LEFT_DOWN, LEFT_UP, RIGHT_DOWN, RIGHT_UP,
+}
+
 type Point struct {
 	X int
 	Y int

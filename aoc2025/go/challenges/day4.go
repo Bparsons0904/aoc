@@ -24,17 +24,72 @@ func Day4() {
 	// 	part2Count,
 	// )
 
-	timer := log.Timer("Both Part Timers Optimized")
-	part1Count, part2Count := calculatePaperRollsOptimized(grid)
+	// timer := log.Timer("Both Part Timers Optimized")
+	// part1Count, part2Count := calculatePaperRollsOptimized(grid)
+	// timer()
+	//
+	// slog.Info(
+	// 	"Day 4 Optimized",
+	// 	"part1",
+	// 	part1Count,
+	// 	"part2",
+	// 	part2Count,
+	// )
+
+	timer := log.Timer("Both Part Timers Queue")
+	part1CountQueue, part2CountQueue := calculatePaperRollsQueue(grid)
 	timer()
 
 	slog.Info(
-		"Day 4",
+		"Day 4 Queue",
 		"part1",
-		part1Count,
+		part1CountQueue,
 		"part2",
-		part2Count,
+		part2CountQueue,
 	)
+}
+
+func calculatePaperRollsQueue(grid *Grid) (int, int) {
+	part1Count := 0
+	part2Count := 0
+
+	stack := make([]Point, 0, (grid.Height*grid.Width)/2)
+	for y := 0; y < grid.Height; y++ {
+		for x := 0; x < grid.Width; x++ {
+			if grid.Map[y][x] == PAPER_ROLL {
+				point := Point{X: x, Y: y}
+				connectedRolls := countPaperRollContacts(grid, point)
+				if connectedRolls < 4 {
+					part1Count++
+					stack = append(stack, point)
+				}
+			}
+		}
+	}
+
+	for len(stack) > 0 {
+		point := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if grid.Map[point.Y][point.X] != PAPER_ROLL {
+			continue
+		}
+
+		grid.SetObject(point, EMPTY)
+		part2Count++
+
+		for _, dir := range DIRECTIONS {
+			neighbor := movePoint(point, dir)
+			if grid.PositionContainsObject(neighbor, PAPER_ROLL) {
+				connectedRolls := countPaperRollContacts(grid, neighbor)
+				if connectedRolls < 4 {
+					stack = append(stack, neighbor)
+				}
+			}
+		}
+	}
+
+	return part1Count, part2Count
 }
 
 func calculatePaperRollsOptimized(grid *Grid) (int, int) {
@@ -116,11 +171,8 @@ func calculatePaperRolls(grid *Grid) (int, int) {
 
 func countPaperRollContacts(grid *Grid, point Point) int {
 	count := 0
-	pointsToCheck := []Point{
-		LEFT, RIGHT, UP, DOWN, LEFT_DOWN, LEFT_UP, RIGHT_DOWN, RIGHT_UP,
-	}
 
-	for _, direction := range pointsToCheck {
+	for _, direction := range DIRECTIONS {
 		if grid.PositionContainsObject(movePoint(point, direction), PAPER_ROLL) {
 			count++
 		}
