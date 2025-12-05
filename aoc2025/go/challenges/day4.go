@@ -12,8 +12,20 @@ func Day4() {
 	log := logger.New("Day4")
 	grid := New("day4.part1")
 
-	timer := log.Timer("Both Part Timers")
-	part1Count, part2Count := calculatePaperRolls(grid)
+	// timer := log.Timer("Both Part Timers")
+	// part1Count, part2Count := calculatePaperRolls(grid)
+	// timer()
+	//
+	// slog.Info(
+	// 	"Day 4",
+	// 	"part1",
+	// 	part1Count,
+	// 	"part2",
+	// 	part2Count,
+	// )
+
+	timer := log.Timer("Both Part Timers Optimized")
+	part1Count, part2Count := calculatePaperRollsOptimized(grid)
 	timer()
 
 	slog.Info(
@@ -23,6 +35,44 @@ func Day4() {
 		"part2",
 		part2Count,
 	)
+}
+
+func calculatePaperRollsOptimized(grid *Grid) (int, int) {
+	part1Count := 0
+	part2Count := 0
+
+	mappedPaperRolls := make(map[Point]bool)
+	for y := 0; y < grid.Height; y++ {
+		for x := 0; x < grid.Width; x++ {
+			if grid.Map[y][x] == PAPER_ROLL {
+				mappedPaperRolls[Point{X: x, Y: y}] = true
+				connectedRolls := countPaperRollContacts(grid, Point{X: x, Y: y})
+				if connectedRolls < 4 {
+					part1Count++
+				}
+			}
+		}
+	}
+
+	lastPassCount := -1
+	for {
+		if lastPassCount == 0 {
+			break
+		}
+		lastPassCount = 0
+
+		for point := range mappedPaperRolls {
+			connectedRolls := countPaperRollContacts(grid, point)
+			if connectedRolls < 4 {
+				grid.SetObject(point, EMPTY)
+				delete(mappedPaperRolls, point)
+				lastPassCount++
+				part2Count++
+			}
+		}
+	}
+
+	return part1Count, part2Count
 }
 
 func calculatePaperRolls(grid *Grid) (int, int) {
