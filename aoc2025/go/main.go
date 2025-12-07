@@ -20,8 +20,7 @@ func main() {
 	case 5:
 		challenges.Day5()
 	case 6:
-		// challenges.Day6()
-		challenges.Day7()
+		challenges.Day6()
 	case 7:
 		challenges.Day7()
 	case 8:
