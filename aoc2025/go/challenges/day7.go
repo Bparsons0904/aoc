@@ -4,22 +4,71 @@ import (
 	"log/slog"
 
 	"aoc/grid"
+
+	logger "github.com/Bparsons0904/goLogger"
 )
 
 func Day7() {
-	slog.Info("day7")
+	log := logger.New("Day7")
 
 	tachyonGrid := grid.New("day7.part1")
-	trimGrid(tachyonGrid)
 
+	timer := log.Timer("Part 1 Timer")
 	part1Count := processTachyonBeamSplitCounter(tachyonGrid)
-	part2Count := processTachyonBeamRoutesCounter(tachyonGrid)
+	timer()
 
-	slog.Info("part1", "Part 1", part1Count, "Part 2", part2Count)
+	timer = log.Timer("Part 2 Timer")
+	part2Count := processTachyonBeamRoutesCounter(tachyonGrid)
+	timer()
+
+	log.Info("part1", "Part 1", part1Count, "Part 2", part2Count)
 }
 
+type TachyonGraph map[grid.Point]int
+
 func processTachyonBeamRoutesCounter(tachyonGrid *grid.Grid) int {
-	return processPath(tachyonGrid.Current, tachyonGrid)
+	techyonGraph := make(TachyonGraph)
+
+	rowLength := len(tachyonGrid.Map[0])
+	for i := len(tachyonGrid.Map) - 1; i >= 0; i-- {
+		for j := range rowLength {
+			if tachyonGrid.Map[i][j] == grid.TACHYON {
+				tachyonPathCount := 0
+				if j-1 >= 0 {
+					tachyonPathCount = techyonGraph.locateTachyon(
+						tachyonGrid,
+						grid.Point{X: j - 1, Y: i},
+					)
+				}
+
+				if j+1 < rowLength {
+					tachyonPathCount += techyonGraph.locateTachyon(
+						tachyonGrid,
+						grid.Point{X: j + 1, Y: i},
+					)
+				}
+				techyonGraph[grid.Point{X: j, Y: i}] = tachyonPathCount
+			}
+		}
+	}
+
+	total := techyonGraph.locateTachyon(
+		tachyonGrid,
+		grid.Point{X: tachyonGrid.Current.X, Y: tachyonGrid.Current.Y},
+	)
+
+	return total
+}
+
+func (tachyonGraph TachyonGraph) locateTachyon(tachyonGrid *grid.Grid, point grid.Point) int {
+	for i := point.Y; i < len(tachyonGrid.Map); i++ {
+		value, found := tachyonGraph[grid.Point{X: point.X, Y: i}]
+		if found {
+			return value
+		}
+	}
+
+	return 1
 }
 
 func processPath(point grid.Point, tachyonGrid *grid.Grid) int {

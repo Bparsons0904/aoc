@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	switch time.Now().Day() {
+	switch time.Now().Add(time.Hour).Day() {
 	case 1:
 		challenges.Day1()
 		challenges.Day1_1()
