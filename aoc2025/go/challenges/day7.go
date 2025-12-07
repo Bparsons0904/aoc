@@ -27,7 +27,7 @@ func Day7() {
 type TachyonGraph map[grid.Point]int
 
 func processTachyonBeamRoutesCounter(tachyonGrid *grid.Grid) int {
-	techyonGraph := make(TachyonGraph)
+	tachyonGraph := make(TachyonGraph)
 
 	rowLength := len(tachyonGrid.Map[0])
 	for i := len(tachyonGrid.Map) - 1; i >= 0; i-- {
@@ -35,24 +35,24 @@ func processTachyonBeamRoutesCounter(tachyonGrid *grid.Grid) int {
 			if tachyonGrid.Map[i][j] == grid.TACHYON {
 				tachyonPathCount := 0
 				if j-1 >= 0 {
-					tachyonPathCount = techyonGraph.locateTachyon(
+					tachyonPathCount = tachyonGraph.locateTachyon(
 						tachyonGrid,
 						grid.Point{X: j - 1, Y: i},
 					)
 				}
 
 				if j+1 < rowLength {
-					tachyonPathCount += techyonGraph.locateTachyon(
+					tachyonPathCount += tachyonGraph.locateTachyon(
 						tachyonGrid,
 						grid.Point{X: j + 1, Y: i},
 					)
 				}
-				techyonGraph[grid.Point{X: j, Y: i}] = tachyonPathCount
+				tachyonGraph[grid.Point{X: j, Y: i}] = tachyonPathCount
 			}
 		}
 	}
 
-	total := techyonGraph.locateTachyon(
+	total := tachyonGraph.locateTachyon(
 		tachyonGrid,
 		grid.Point{X: tachyonGrid.Current.X, Y: tachyonGrid.Current.Y},
 	)
