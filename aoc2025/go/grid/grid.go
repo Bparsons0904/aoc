@@ -26,6 +26,7 @@ const (
 	MOVED_LEFT  = '<'
 	MOVED_RIGHT = '>'
 	START       = 'S'
+	TACHYON     = MOVED_UP
 )
 
 var DIRECTIONS = []Point{
@@ -259,16 +260,33 @@ func makeGrid(filename string) *Grid {
 	file := utilities.ReadFile(filename)
 	gridMap := make([][]rune, len(file))
 
+	var startPoint Point
+
 	for i, row := range file {
 		gridMap[i] = make([]rune, len(row))
 		for j, char := range row {
 			gridMap[i][j] = char
+			if char == START {
+				startPoint = Point{X: j, Y: i}
+			}
 		}
 	}
 
-	return &Grid{
+	grid := Grid{
 		Width:  len(file[0]),
 		Height: len(file),
 		Map:    gridMap,
 	}
+
+	if startPoint != (Point{}) {
+		grid.Current = startPoint
+		grid.Start = startPoint
+
+		grid.Visited = append(grid.Visited, Visit{
+			Point:     startPoint,
+			Direction: Point{},
+		})
+	}
+
+	return &grid
 }
