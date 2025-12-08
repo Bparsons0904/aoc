@@ -1,7 +1,7 @@
 package challenges
 
 import (
-	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -36,24 +36,27 @@ type JunctionBoxGroup struct {
 func Day8() {
 	log := logger.New("Day8")
 	var junctionBoxConnections JunctionBoxConnections
-	junctionBoxConnections.buildJunctionBoxes("day8.part0")
+	junctionBoxConnections.buildJunctionBoxes("day8.part1")
 	junctionBoxConnections.buildJunctionBoxDistanceMatrix()
 	junctionBoxConnections.buildJunctionBoxConnections()
 
 	// timer := log.Timer("Build Junction Box Distance Matrix Timer")
 	// timer()
-	for _, connection := range junctionBoxConnections.connections {
-		if len(connection.connections) == 0 {
-			continue
+
+	result := 0
+	for i, connection := range junctionBoxConnections.connections {
+		if i >= 3 {
+			break
 		}
-		log.Info(
-			"Part 1",
-			"length",
-			len(connection.connections),
-			"connections",
-			connection.connections,
-		)
+		if result == 0 {
+			result = len(connection.connections)
+		} else {
+			result *= len(connection.connections)
+		}
+
 	}
+
+	log.Info("part1", "Part 1", result)
 }
 
 func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
@@ -65,18 +68,16 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 
 	shortestConnections := make([]shortestConnection, 0)
 
-	// Generate all unique pairs (i < j to avoid duplicates)
 	for i := 0; i < len(j.junctionBoxes); i++ {
 		for k := i + 1; k < len(j.junctionBoxes); k++ {
 			junctionBox := j.junctionBoxes[i]
 			otherJunctionBox := j.junctionBoxes[k]
 
-			dx := junctionBox.X - otherJunctionBox.X
-			dy := junctionBox.Y - otherJunctionBox.Y
-			dz := junctionBox.Z - otherJunctionBox.Z
+			dx := float64(junctionBox.X - otherJunctionBox.X)
+			dy := float64(junctionBox.Y - otherJunctionBox.Y)
+			dz := float64(junctionBox.Z - otherJunctionBox.Z)
 
-			// Use squared distance to avoid floating point truncation issues
-			distance := dx*dx + dy*dy + dz*dz
+			distance := int(math.Sqrt(dx*dx + dy*dy + dz*dz))
 
 			shortestConnections = append(shortestConnections, shortestConnection{
 				distance: distance,
@@ -90,15 +91,9 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 		return a.distance - b.distance
 	})
 
-	// Debug: print first 15 connections
-	for i := 0; i < 15 && i < len(shortestConnections); i++ {
-		c := shortestConnections[i]
-		fmt.Printf("Pair %d: dist=%d from=%v to=%v\n", i, c.distance, c.from, c.to)
-	}
-
 	connectionsMade := 0
 	for _, connection := range shortestConnections {
-		if connectionsMade >= 10 {
+		if connectionsMade >= 1000 {
 			break
 		}
 
@@ -106,13 +101,10 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 		toIndex := j.junctionBoxConnectionIndex[connection.to]
 
 		connectionsMade++
-
-		// Already in same circuit - still counts as an attempt
 		if fromIndex != -1 && fromIndex == toIndex {
 			continue
 		}
 
-		// Both unassigned - create new circuit
 		if fromIndex == -1 && toIndex == -1 {
 			j.connections = append(
 				j.connections,
@@ -123,7 +115,6 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 			continue
 		}
 
-		// One is unassigned - add to existing circuit
 		if fromIndex == -1 {
 			j.connections[toIndex].connections = append(
 				j.connections[toIndex].connections,
@@ -141,24 +132,20 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 			continue
 		}
 
-		// Both in different circuits - merge them
 		smallerIdx, largerIdx := fromIndex, toIndex
 		if len(j.connections[fromIndex].connections) > len(j.connections[toIndex].connections) {
 			smallerIdx, largerIdx = toIndex, fromIndex
 		}
 
-		// Update index for every box in the smaller circuit
 		for _, box := range j.connections[smallerIdx].connections {
 			j.junctionBoxConnectionIndex[box] = largerIdx
 		}
 
-		// Move all boxes to the larger circuit
 		j.connections[largerIdx].connections = append(
 			j.connections[largerIdx].connections,
 			j.connections[smallerIdx].connections...,
 		)
 
-		// Clear the smaller circuit
 		j.connections[smallerIdx].connections = nil
 	}
 
@@ -172,6 +159,10 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 			j.junctionBoxConnectionIndex[junctionBox] = len(j.connections) - 1
 		}
 	}
+
+	slices.SortFunc(j.connections, func(a, b JunctionBoxGroup) int {
+		return len(b.connections) - len(a.connections)
+	})
 }
 
 func (j *JunctionBoxConnections) buildJunctionBoxDistanceMatrix() {
