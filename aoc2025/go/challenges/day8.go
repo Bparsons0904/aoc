@@ -1,7 +1,6 @@
 package challenges
 
 import (
-	"log/slog"
 	"math"
 	"slices"
 	"strconv"
@@ -24,24 +23,26 @@ type JunctionBoxGroup struct {
 
 func Day8() {
 	log := logger.New("Day8")
-	junctionBoxes, junctionBoxConnectionIndex := buildJunctionBoxes("day8.part0")
+	junctionBoxes, junctionBoxConnectionIndex := buildJunctionBoxes("day8.part1")
 	connections := getSortedConnections(junctionBoxes)
+
+	timer := log.Timer("Part 1 Timer")
 	part1Results := buildJunctionBoxConnectionsPart1(
 		connections,
 		junctionBoxConnectionIndex,
 		junctionBoxes,
-		10,
+		1000,
 	)
+	timer()
 
-	junctionBoxes, junctionBoxConnectionIndex = buildJunctionBoxes("day8.part0")
+	junctionBoxes, junctionBoxConnectionIndex = buildJunctionBoxes("day8.part1")
+	timer = log.Timer("Part 2 Timer")
 	part2Results := buildJunctionBoxConnectionsPart2(
 		connections,
 		junctionBoxConnectionIndex,
 		junctionBoxes,
 	)
-
-	// timer := log.Timer("Build Junction Box Distance Matrix Timer")
-	// timer()
+	timer()
 
 	log.Info("part1", "Part 1", part1Results, "Part 2", part2Results)
 }
@@ -60,8 +61,11 @@ func buildJunctionBoxConnectionsPart2(
 	connections := make([]JunctionBoxGroup, 0)
 
 	connectionsMade := 0
-	for _, connection := range shortestConnections {
-		slog.Info("connection", "from", connection.from, "to", connection.to)
+	for i, connection := range shortestConnections {
+		if len(connections) == 1 && len(connections[0].connections) == len(junctionBoxes) {
+			return shortestConnections[i-1].from.X * shortestConnections[i-1].to.X
+		}
+
 		fromIndex := junctionBoxConnectionIndex[connection.from]
 		toIndex := junctionBoxConnectionIndex[connection.to]
 
@@ -111,9 +115,13 @@ func buildJunctionBoxConnectionsPart2(
 			connections[smallerIdx].connections...,
 		)
 
-		slog.Info("merged", "connections", connections)
+		connections = append(connections[:smallerIdx], connections[smallerIdx+1:]...)
 
-		// connections = append(connections[:smallerIdx], connections[smallerIdx+1:]...)
+		for box, idx := range junctionBoxConnectionIndex {
+			if idx > smallerIdx {
+				junctionBoxConnectionIndex[box] = idx - 1
+			}
+		}
 
 	}
 
@@ -237,9 +245,6 @@ func buildJunctionBoxConnectionsPart1(
 			connections[largerIdx].connections,
 			connections[smallerIdx].connections...,
 		)
-
-		// connections = append(connections[:smallerIdx], connections[smallerIdx+1:]...)
-
 	}
 
 	for _, junctionBox := range junctionBoxes {
