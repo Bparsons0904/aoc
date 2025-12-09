@@ -62,7 +62,7 @@ func buildJunctionBoxConnectionsPart2(
 
 	connectionsMade := 0
 	for i, connection := range shortestConnections {
-		if len() == 1 && len(connections[0].connections) == len(junctionBoxes) {
+		if len(connections) == 1 && len(connections[0].connections) == len(junctionBoxes) {
 			return shortestConnections[i-1].from.X * shortestConnections[i-1].to.X
 		}
 
