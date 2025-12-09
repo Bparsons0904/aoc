@@ -62,7 +62,7 @@ func buildJunctionBoxConnectionsPart2(
 
 	connectionsMade := 0
 	for i, connection := range shortestConnections {
-		if len(connections) == 1 && len(connections[0].connections) == len(junctionBoxes) {
+		if len() == 1 && len(connections[0].connections) == len(junctionBoxes) {
 			return shortestConnections[i-1].from.X * shortestConnections[i-1].to.X
 		}
 
@@ -125,33 +125,7 @@ func buildJunctionBoxConnectionsPart2(
 
 	}
 
-	for _, junctionBox := range junctionBoxes {
-		if junctionBoxConnectionIndex[junctionBox] == -1 {
-			connections = append(
-				connections,
-				JunctionBoxGroup{connections: []JunctionBox{junctionBox}},
-			)
-			junctionBoxConnectionIndex[junctionBox] = len(connections) - 1
-		}
-	}
-
-	slices.SortFunc(connections, func(a, b JunctionBoxGroup) int {
-		return len(b.connections) - len(a.connections)
-	})
-
-	result := 0
-	for i, connection := range connections {
-		if i >= 3 {
-			break
-		}
-		if result == 0 {
-			result = len(connection.connections)
-		} else {
-			result *= len(connection.connections)
-		}
-	}
-
-	return result
+	return 0
 }
 
 func getSortedConnections(junctionBoxes []JunctionBox) []shortestConnection {
