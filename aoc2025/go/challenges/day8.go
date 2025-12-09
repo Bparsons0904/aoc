@@ -1,6 +1,7 @@
 package challenges
 
 import (
+	"log/slog"
 	"math"
 	"slices"
 	"strconv"
@@ -17,34 +18,121 @@ type JunctionBox struct {
 	Z int
 }
 
-type JunctionBoxConnections struct {
-	connections                []JunctionBoxGroup
-	junctionBoxes              []JunctionBox
-	junctionBoxConnectionIndex map[JunctionBox]int
-}
-
-type JunctionBoxConnection struct {
-	Distance int
-	From     JunctionBox
-	To       JunctionBox
-}
-
 type JunctionBoxGroup struct {
 	connections []JunctionBox
 }
 
 func Day8() {
 	log := logger.New("Day8")
-	var junctionBoxConnections JunctionBoxConnections
-	junctionBoxConnections.buildJunctionBoxes("day8.part1")
-	junctionBoxConnections.buildJunctionBoxDistanceMatrix()
-	junctionBoxConnections.buildJunctionBoxConnections()
+	junctionBoxes, junctionBoxConnectionIndex := buildJunctionBoxes("day8.part0")
+	connections := getSortedConnections(junctionBoxes)
+	part1Results := buildJunctionBoxConnectionsPart1(
+		connections,
+		junctionBoxConnectionIndex,
+		junctionBoxes,
+		10,
+	)
+
+	junctionBoxes, junctionBoxConnectionIndex = buildJunctionBoxes("day8.part0")
+	part2Results := buildJunctionBoxConnectionsPart2(
+		connections,
+		junctionBoxConnectionIndex,
+		junctionBoxes,
+	)
 
 	// timer := log.Timer("Build Junction Box Distance Matrix Timer")
 	// timer()
 
+	log.Info("part1", "Part 1", part1Results, "Part 2", part2Results)
+}
+
+type shortestConnection struct {
+	distance int
+	from     JunctionBox
+	to       JunctionBox
+}
+
+func buildJunctionBoxConnectionsPart2(
+	shortestConnections []shortestConnection,
+	junctionBoxConnectionIndex map[JunctionBox]int,
+	junctionBoxes []JunctionBox,
+) int {
+	connections := make([]JunctionBoxGroup, 0)
+
+	connectionsMade := 0
+	for _, connection := range shortestConnections {
+		slog.Info("connection", "from", connection.from, "to", connection.to)
+		fromIndex := junctionBoxConnectionIndex[connection.from]
+		toIndex := junctionBoxConnectionIndex[connection.to]
+
+		connectionsMade++
+		if fromIndex != -1 && fromIndex == toIndex {
+			continue
+		}
+
+		if fromIndex == -1 && toIndex == -1 {
+			connections = append(
+				connections,
+				JunctionBoxGroup{connections: []JunctionBox{connection.from, connection.to}},
+			)
+			junctionBoxConnectionIndex[connection.from] = len(connections) - 1
+			junctionBoxConnectionIndex[connection.to] = len(connections) - 1
+			continue
+		}
+
+		if fromIndex == -1 {
+			connections[toIndex].connections = append(
+				connections[toIndex].connections,
+				connection.from,
+			)
+			junctionBoxConnectionIndex[connection.from] = toIndex
+			continue
+		}
+		if toIndex == -1 {
+			connections[fromIndex].connections = append(
+				connections[fromIndex].connections,
+				connection.to,
+			)
+			junctionBoxConnectionIndex[connection.to] = fromIndex
+			continue
+		}
+
+		smallerIdx, largerIdx := fromIndex, toIndex
+		if len(connections[fromIndex].connections) > len(connections[toIndex].connections) {
+			smallerIdx, largerIdx = toIndex, fromIndex
+		}
+
+		for _, box := range connections[smallerIdx].connections {
+			junctionBoxConnectionIndex[box] = largerIdx
+		}
+
+		connections[largerIdx].connections = append(
+			connections[largerIdx].connections,
+			connections[smallerIdx].connections...,
+		)
+
+		slog.Info("merged", "connections", connections)
+
+		// connections = append(connections[:smallerIdx], connections[smallerIdx+1:]...)
+
+	}
+
+	for _, junctionBox := range junctionBoxes {
+		if junctionBoxConnectionIndex[junctionBox] == -1 {
+			connections = append(
+				connections,
+				JunctionBoxGroup{connections: []JunctionBox{junctionBox}},
+			)
+			junctionBoxConnectionIndex[junctionBox] = len(connections) - 1
+		}
+	}
+
+	slices.SortFunc(connections, func(a, b JunctionBoxGroup) int {
+		return len(b.connections) - len(a.connections)
+	})
+
 	result := 0
-	for i, connection := range junctionBoxConnections.connections {
+	for i, connection := range connections {
 		if i >= 3 {
 			break
 		}
@@ -53,25 +141,18 @@ func Day8() {
 		} else {
 			result *= len(connection.connections)
 		}
-
 	}
 
-	log.Info("part1", "Part 1", result)
+	return result
 }
 
-func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
-	type shortestConnection struct {
-		distance int
-		from     JunctionBox
-		to       JunctionBox
-	}
-
+func getSortedConnections(junctionBoxes []JunctionBox) []shortestConnection {
 	shortestConnections := make([]shortestConnection, 0)
 
-	for i := 0; i < len(j.junctionBoxes); i++ {
-		for k := i + 1; k < len(j.junctionBoxes); k++ {
-			junctionBox := j.junctionBoxes[i]
-			otherJunctionBox := j.junctionBoxes[k]
+	for i := range junctionBoxes {
+		for k := i + 1; k < len(junctionBoxes); k++ {
+			junctionBox := junctionBoxes[i]
+			otherJunctionBox := junctionBoxes[k]
 
 			dx := float64(junctionBox.X - otherJunctionBox.X)
 			dy := float64(junctionBox.Y - otherJunctionBox.Y)
@@ -91,14 +172,25 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 		return a.distance - b.distance
 	})
 
+	return shortestConnections
+}
+
+func buildJunctionBoxConnectionsPart1(
+	shortestConnections []shortestConnection,
+	junctionBoxConnectionIndex map[JunctionBox]int,
+	junctionBoxes []JunctionBox,
+	limit int,
+) int {
+	connections := make([]JunctionBoxGroup, 0)
+
 	connectionsMade := 0
 	for _, connection := range shortestConnections {
-		if connectionsMade >= 1000 {
+		if connectionsMade >= limit {
 			break
 		}
 
-		fromIndex := j.junctionBoxConnectionIndex[connection.from]
-		toIndex := j.junctionBoxConnectionIndex[connection.to]
+		fromIndex := junctionBoxConnectionIndex[connection.from]
+		toIndex := junctionBoxConnectionIndex[connection.to]
 
 		connectionsMade++
 		if fromIndex != -1 && fromIndex == toIndex {
@@ -106,96 +198,84 @@ func (j *JunctionBoxConnections) buildJunctionBoxConnections() {
 		}
 
 		if fromIndex == -1 && toIndex == -1 {
-			j.connections = append(
-				j.connections,
+			connections = append(
+				connections,
 				JunctionBoxGroup{connections: []JunctionBox{connection.from, connection.to}},
 			)
-			j.junctionBoxConnectionIndex[connection.from] = len(j.connections) - 1
-			j.junctionBoxConnectionIndex[connection.to] = len(j.connections) - 1
+			junctionBoxConnectionIndex[connection.from] = len(connections) - 1
+			junctionBoxConnectionIndex[connection.to] = len(connections) - 1
 			continue
 		}
 
 		if fromIndex == -1 {
-			j.connections[toIndex].connections = append(
-				j.connections[toIndex].connections,
+			connections[toIndex].connections = append(
+				connections[toIndex].connections,
 				connection.from,
 			)
-			j.junctionBoxConnectionIndex[connection.from] = toIndex
+			junctionBoxConnectionIndex[connection.from] = toIndex
 			continue
 		}
 		if toIndex == -1 {
-			j.connections[fromIndex].connections = append(
-				j.connections[fromIndex].connections,
+			connections[fromIndex].connections = append(
+				connections[fromIndex].connections,
 				connection.to,
 			)
-			j.junctionBoxConnectionIndex[connection.to] = fromIndex
+			junctionBoxConnectionIndex[connection.to] = fromIndex
 			continue
 		}
 
 		smallerIdx, largerIdx := fromIndex, toIndex
-		if len(j.connections[fromIndex].connections) > len(j.connections[toIndex].connections) {
+		if len(connections[fromIndex].connections) > len(connections[toIndex].connections) {
 			smallerIdx, largerIdx = toIndex, fromIndex
 		}
 
-		for _, box := range j.connections[smallerIdx].connections {
-			j.junctionBoxConnectionIndex[box] = largerIdx
+		for _, box := range connections[smallerIdx].connections {
+			junctionBoxConnectionIndex[box] = largerIdx
 		}
 
-		j.connections[largerIdx].connections = append(
-			j.connections[largerIdx].connections,
-			j.connections[smallerIdx].connections...,
+		connections[largerIdx].connections = append(
+			connections[largerIdx].connections,
+			connections[smallerIdx].connections...,
 		)
 
-		j.connections[smallerIdx].connections = nil
+		// connections = append(connections[:smallerIdx], connections[smallerIdx+1:]...)
+
 	}
 
-	// loop over all the junction boxes and see which still have an index of -1 and add them to the connections
-	for _, junctionBox := range j.junctionBoxes {
-		if j.junctionBoxConnectionIndex[junctionBox] == -1 {
-			j.connections = append(
-				j.connections,
+	for _, junctionBox := range junctionBoxes {
+		if junctionBoxConnectionIndex[junctionBox] == -1 {
+			connections = append(
+				connections,
 				JunctionBoxGroup{connections: []JunctionBox{junctionBox}},
 			)
-			j.junctionBoxConnectionIndex[junctionBox] = len(j.connections) - 1
+			junctionBoxConnectionIndex[junctionBox] = len(connections) - 1
 		}
 	}
 
-	slices.SortFunc(j.connections, func(a, b JunctionBoxGroup) int {
+	slices.SortFunc(connections, func(a, b JunctionBoxGroup) int {
 		return len(b.connections) - len(a.connections)
 	})
+
+	result := 0
+	for i, connection := range connections {
+		if i >= 3 {
+			break
+		}
+		if result == 0 {
+			result = len(connection.connections)
+		} else {
+			result *= len(connection.connections)
+		}
+	}
+
+	return result
 }
 
-func (j *JunctionBoxConnections) buildJunctionBoxDistanceMatrix() {
-	// j.junctionBoxDistanceMatrix = make(map[JunctionBox]map[JunctionBox]int)
-	// for _, junctionBox := range j.junctionBoxes {
-	// 	for _, otherJunctionBox := range j.junctionBoxes {
-	// 		if junctionBox.X == otherJunctionBox.X && junctionBox.Y == otherJunctionBox.Y &&
-	// 			junctionBox.Z == otherJunctionBox.Z {
-	// 			continue
-	// 		}
-	//
-	// 		dx := float64(junctionBox.X - otherJunctionBox.X)
-	// 		dy := float64(junctionBox.Y - otherJunctionBox.Y)
-	// 		dz := float64(junctionBox.Z - otherJunctionBox.Z)
-	//
-	// 		distance := int(math.Sqrt(dx*dx + dy*dy + dz*dz))
-	//
-	// 		if _, ok := j.junctionBoxDistanceMatrix[junctionBox]; !ok {
-	// 			j.junctionBoxDistanceMatrix[junctionBox] = make(map[JunctionBox]int)
-	// 		}
-	//
-	// 		j.junctionBoxDistanceMatrix[junctionBox][otherJunctionBox] = distance
-	// 	}
-	// }
-	//
-	// for key, junctionBox := range j.junctionBoxDistanceMatrix {
-	// }
-}
-
-func (j *JunctionBoxConnections) buildJunctionBoxes(fileName string) JunctionBoxConnections {
+func buildJunctionBoxes(fileName string) ([]JunctionBox, map[JunctionBox]int) {
 	file := utilities.ReadFile(fileName)
 
-	j.junctionBoxConnectionIndex = make(map[JunctionBox]int)
+	junctionBoxes := make([]JunctionBox, 0)
+	junctionBoxConnectionIndex := make(map[JunctionBox]int)
 	for _, row := range file {
 		coordinates := strings.Split(row, ",")
 		x, _ := strconv.Atoi(coordinates[0])
@@ -208,9 +288,9 @@ func (j *JunctionBoxConnections) buildJunctionBoxes(fileName string) JunctionBox
 			Z: z,
 		}
 
-		j.junctionBoxes = append(j.junctionBoxes, newJunctionBox)
-		j.junctionBoxConnectionIndex[newJunctionBox] = -1
+		junctionBoxes = append(junctionBoxes, newJunctionBox)
+		junctionBoxConnectionIndex[newJunctionBox] = -1
 	}
 
-	return JunctionBoxConnections{}
+	return junctionBoxes, junctionBoxConnectionIndex
 }
