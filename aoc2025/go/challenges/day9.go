@@ -30,11 +30,23 @@ func Day9() {
 	intervals := getInsideIntervals(redTiles)
 	timer()
 
-	timer = log.Timer("Part 2 Timer")
+	timer = log.Timer("Part 2 Original Timer")
 	largestAreaPart2 := getLargestAreaWithIntervals(redTiles, intervals)
 	timer()
 
-	log.Info("Results", "Part 1", largestAreaPart1, "Part 2", largestAreaPart2)
+	timer = log.Timer("Part 2 Optimized Timer")
+	largestAreaPart2Optimized := getLargestAreaWithIntervalsOptimized(redTiles, intervals)
+	timer()
+
+	log.Info(
+		"Results",
+		"Part 1",
+		largestAreaPart1,
+		"Part 2",
+		largestAreaPart2,
+		"Part 2 Optimized",
+		largestAreaPart2Optimized,
+	)
 }
 
 func getInsideIntervals(redTiles []grid.Point) map[int][]Interval {
@@ -149,58 +161,258 @@ func mergeIntervals(intervals []Interval) []Interval {
 func getLargestAreaWithIntervals(redTiles []grid.Point, intervals map[int][]Interval) int {
 	log := logger.New("Day9").With("Function", "getLargestAreaWithIntervals")
 
-	abs := func(x int) int {
-		if x < 0 {
-			return -x
-		}
-		return x
-	}
-
-	timer := log.Timer("get potential tiles")
-	type potentialTile struct {
-		point1, point2 grid.Point
-		area           int
-	}
-	potentialTiles := make([]potentialTile, 0, len(redTiles)*len(redTiles))
-
-	for _, p1 := range redTiles {
-		for _, p2 := range redTiles {
-			if p1 == p2 {
-				continue
+	timer := log.Timer("precompute max widths")
+	maxWidthAtY := make(map[int]int)
+	for y, ivs := range intervals {
+		maxW := 0
+		for _, iv := range ivs {
+			w := iv.End - iv.Start + 1
+			if w > maxW {
+				maxW = w
 			}
-			width := abs(p1.X-p2.X) + 1
-			height := abs(p1.Y-p2.Y) + 1
-			potentialTiles = append(potentialTiles, potentialTile{
-				point1: p1,
-				point2: p2,
-				area:   width * height,
+		}
+		maxWidthAtY[y] = maxW
+	}
+	timer()
+
+	timer = log.Timer("get potential tiles")
+	type candidate struct {
+		minX, maxX, minY, maxY int
+		area                   int
+	}
+
+	candidates := make([]candidate, 0, len(redTiles)*(len(redTiles)-1)/2)
+
+	for i := range redTiles {
+		for j := i + 1; j < len(redTiles); j++ {
+			p1, p2 := redTiles[i], redTiles[j]
+			minX, maxX := p1.X, p2.X
+			if minX > maxX {
+				minX, maxX = maxX, minX
+			}
+			minY, maxY := p1.Y, p2.Y
+			if minY > maxY {
+				minY, maxY = maxY, minY
+			}
+			width := maxX - minX + 1
+			height := maxY - minY + 1
+			candidates = append(candidates, candidate{
+				minX: minX, maxX: maxX, minY: minY, maxY: maxY,
+				area: width * height,
 			})
 		}
 	}
 	timer()
 
 	timer = log.Timer("sort potential tiles")
-	slices.SortFunc(potentialTiles, func(a, b potentialTile) int {
+	slices.SortFunc(candidates, func(a, b candidate) int {
 		return b.area - a.area
 	})
 	timer()
 
 	timer = log.Timer("check rectangles")
-	for _, pt := range potentialTiles {
-		minX, maxX := pt.point1.X, pt.point2.X
-		if minX > maxX {
-			minX, maxX = maxX, minX
+	for _, c := range candidates {
+		width := c.maxX - c.minX + 1
+
+		canFit := true
+		for y := c.minY; y <= c.maxY; y++ {
+			if maxWidthAtY[y] < width {
+				canFit = false
+				break
+			}
 		}
-		minY, maxY := pt.point1.Y, pt.point2.Y
-		if minY > maxY {
-			minY, maxY = maxY, minY
+		if !canFit {
+			continue
 		}
 
-		if isRectangleInside(minX, maxX, minY, maxY, intervals) {
+		if isRectangleInside(c.minX, c.maxX, c.minY, c.maxY, intervals) {
 			timer()
-			return pt.area
+			return c.area
 		}
 	}
+	timer()
+
+	return 0
+}
+
+// Gemini algorithm
+// Segment Tree for Range Minimum Query
+type SegmentTree struct {
+	tree    []int
+	yCoords []int
+	yIndex  map[int]int
+	size    int
+}
+
+// Gemini algorithm
+func buildSegmentTree(maxWidthAtY map[int]int) *SegmentTree {
+	yCoords := make([]int, 0, len(maxWidthAtY))
+	for y := range maxWidthAtY {
+		yCoords = append(yCoords, y)
+	}
+	slices.Sort(yCoords)
+
+	yIndex := make(map[int]int, len(yCoords))
+	for i, y := range yCoords {
+		yIndex[y] = i
+	}
+
+	size := len(yCoords)
+	tree := make([]int, 4*size)
+
+	var build func(arrIndex, start, end int)
+	build = func(arrIndex, start, end int) {
+		if start == end {
+			tree[arrIndex] = maxWidthAtY[yCoords[start]]
+			return
+		}
+		mid := (start + end) / 2
+		build(2*arrIndex+1, start, mid)
+		build(2*arrIndex+2, mid+1, end)
+		tree[arrIndex] = min(tree[2*arrIndex+1], tree[2*arrIndex+2])
+	}
+
+	if size > 0 {
+		build(0, 0, size-1)
+	}
+
+	return &SegmentTree{tree: tree, yCoords: yCoords, yIndex: yIndex, size: size}
+}
+
+// Gemini algorithm
+func (st *SegmentTree) Query(minY, maxY int) int {
+	if st.size == 0 {
+		return 0
+	}
+
+	l, okL := st.yIndex[minY]
+	r, okR := st.yIndex[maxY]
+
+	// If the exact Y is not a key, find the next available one.
+	if !okL {
+		// Find where minY would be inserted
+		idx, _ := slices.BinarySearch(st.yCoords, minY)
+		if idx >= len(st.yCoords) {
+			return 0
+		}
+		l = idx
+	}
+	if !okR {
+		idx, _ := slices.BinarySearch(st.yCoords, maxY)
+		if idx == 0 {
+			return 0
+		}
+		r = idx - 1
+	}
+
+	if l > r {
+		// This can happen if the range is empty or falls between our yCoords.
+		// A single row check might need this.
+		if _, ok := st.yIndex[minY]; ok && minY == maxY {
+			r = l
+		} else {
+			return 0
+		}
+	}
+
+	var query func(arrIndex, start, end, qStart, qEnd int) int
+	query = func(arrIndex, start, end, qStart, qEnd int) int {
+		if qStart > end || qEnd < start {
+			return math.MaxInt
+		}
+		if qStart <= start && qEnd >= end {
+			return st.tree[arrIndex]
+		}
+		mid := (start + end) / 2
+		leftQuery := query(2*arrIndex+1, start, mid, qStart, qEnd)
+		rightQuery := query(2*arrIndex+2, mid+1, end, qStart, qEnd)
+		return min(leftQuery, rightQuery)
+	}
+
+	return query(0, 0, st.size-1, l, r)
+}
+
+// Gemini algorithm
+func getLargestAreaWithIntervalsOptimized(redTiles []grid.Point, intervals map[int][]Interval) int {
+	log := logger.New("Day9").With("Function", "getLargestAreaWithIntervalsOptimized")
+
+	timer := log.Timer("precompute max widths")
+	maxWidthAtY := make(map[int]int)
+	for y, ivs := range intervals {
+		maxW := 0
+		for _, iv := range ivs {
+			w := iv.End - iv.Start + 1
+			if w > maxW {
+				maxW = w
+			}
+		}
+		maxWidthAtY[y] = maxW
+	}
+	timer()
+
+	timer = log.Timer("build segment tree")
+	segTree := buildSegmentTree(maxWidthAtY)
+	timer()
+
+	timer = log.Timer("get potential tiles")
+	type candidate struct {
+		minX, maxX, minY, maxY int
+		area                   int
+	}
+
+	candidates := make([]candidate, 0, len(redTiles)*(len(redTiles)-1)/2)
+
+	for i := 0; i < len(redTiles); i++ {
+		for j := i + 1; j < len(redTiles); j++ {
+			p1, p2 := redTiles[i], redTiles[j]
+			minX, maxX := p1.X, p2.X
+			if minX > maxX {
+				minX, maxX = maxX, minX
+			}
+			minY, maxY := p1.Y, p2.Y
+			if minY > maxY {
+				minY, maxY = maxY, minY
+			}
+			width := maxX - minX + 1
+			height := maxY - minY + 1
+			// Optimization: if a single row can't fit width, no point generating candidate
+			if _, ok := maxWidthAtY[p1.Y]; ok && maxWidthAtY[p1.Y] < width {
+				continue
+			}
+			if _, ok := maxWidthAtY[p2.Y]; ok && maxWidthAtY[p2.Y] < width {
+				continue
+			}
+
+			candidates = append(candidates, candidate{
+				minX: minX, maxX: maxX, minY: minY, maxY: maxY,
+				area: width * height,
+			})
+		}
+	}
+	timer()
+
+	timer = log.Timer("sort potential tiles")
+	slices.SortFunc(candidates, func(a, b candidate) int {
+		return b.area - a.area
+	})
+	timer()
+
+	timer = log.Timer("check rectangles")
+	for _, c := range candidates {
+		width := c.maxX - c.minX + 1
+
+		minWidthInRange := segTree.Query(c.minY, c.maxY)
+
+		if minWidthInRange < width {
+			continue
+		}
+
+		if isRectangleInside(c.minX, c.maxX, c.minY, c.maxY, intervals) {
+			timer()
+			return c.area
+		}
+	}
+	timer()
 
 	return 0
 }
@@ -212,14 +424,19 @@ func isRectangleInside(minX, maxX, minY, maxY int, intervals map[int][]Interval)
 			return false
 		}
 
-		contained := false
-		for _, iv := range rowIntervals {
-			if iv.Start <= minX && maxX <= iv.End {
-				contained = true
-				break
+		// Binary search: find the rightmost interval with Start <= minX
+		lo, hi := 0, len(rowIntervals)
+		for lo < hi {
+			mid := (lo + hi) / 2
+			if rowIntervals[mid].Start <= minX {
+				lo = mid + 1
+			} else {
+				hi = mid
 			}
 		}
-		if !contained {
+
+		// Check if the interval before 'lo' contains our range
+		if lo == 0 || rowIntervals[lo-1].End < maxX {
 			return false
 		}
 	}
