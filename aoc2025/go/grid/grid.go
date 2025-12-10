@@ -54,6 +54,12 @@ type Visit struct {
 	Direction Point
 }
 
+type TileDef struct {
+	Char   rune
+	Color  string
+	Points []Point
+}
+
 type Grid struct {
 	Width   int
 	Height  int
@@ -61,11 +67,66 @@ type Grid struct {
 	Current Point
 	Visited []Visit
 	Map     [][]rune
+	Tiles   map[rune]string
 }
 
 func New(filename string) *Grid {
 	grid := makeGrid(filename)
 	return grid
+}
+
+func MakeGridByPoints(sizePoints []Point, tiles ...TileDef) *Grid {
+	maxX := 0
+	maxY := 0
+	for _, point := range sizePoints {
+		if point.X > maxX {
+			maxX = point.X
+		}
+		if point.Y > maxY {
+			maxY = point.Y
+		}
+	}
+
+	grid := Grid{
+		Width:  maxX + 1,
+		Height: maxY + 1,
+		Map:    make([][]rune, maxY+1),
+		Tiles:  make(map[rune]string),
+	}
+
+	for i := range grid.Map {
+		grid.Map[i] = make([]rune, maxX+1)
+		for j := range grid.Map[i] {
+			grid.Map[i][j] = EMPTY
+		}
+	}
+
+	for _, tile := range tiles {
+		grid.Tiles[tile.Char] = tile.Color
+		for _, point := range tile.Points {
+			grid.Map[point.Y][point.X] = tile.Char
+		}
+	}
+
+	return &grid
+}
+
+func (g *Grid) FindLastObjectToRight(start Point, object rune) Point {
+	for x := g.Width - 1; x > start.X; x-- {
+		if g.Map[start.Y][x] == object {
+			return Point{X: x, Y: start.Y}
+		}
+	}
+	return Point{}
+}
+
+func (g *Grid) FindLastObjectToBottom(start Point, object rune) Point {
+	for y := g.Height - 1; y > start.Y; y-- {
+		if g.Map[y][start.X] == object {
+			return Point{X: start.X, Y: y}
+		}
+	}
+	return Point{}
 }
 
 func (g *Grid) SetStart(point Point) {
@@ -80,7 +141,11 @@ func (g *Grid) SetStart(point Point) {
 func (g *Grid) Print() {
 	for _, row := range g.Map {
 		for _, char := range row {
-			print(string(char))
+			if color, ok := g.Tiles[char]; ok {
+				fmt.Print(color + string(char) + ColorReset)
+			} else {
+				print(string(char))
+			}
 		}
 		print("\n")
 	}
