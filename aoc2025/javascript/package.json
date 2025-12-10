@@ -1,0 +1,16 @@
+{
+  "type": "module",
+  "name": "aoc2025-javascript",
+  "version": "1.0.0",
+  "scripts": {
+    "day1": "node day1.js",
+    "day2": "node day2.js",
+    "day3": "node day3.js",
+    "day4": "node day4.js",
+    "day5": "node day5.js",
+    "day6": "node day6.js",
+    "day7": "node day7.js",
+    "day8": "node day8.js",
+    "day9": "node day9.js"
+  }
+}
