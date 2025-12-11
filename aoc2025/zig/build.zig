@@ -6,12 +6,13 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "aoc2025",
-        .optimize = optimize,
+        .root_module = b.createModule(.{ 
+            .root_source_file = .{ .cwd_relative = "src/main.zig" },
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     
-    exe.addSourceFile(.{ .path = "src/main.zig" });
-    exe.setTarget(target);
-
     b.installArtifact(exe);
 
     const run_cmd = b.addRunArtifact(exe);

@@ -1,7 +1,6 @@
 import gleam/int
 import gleam/io
 import gleam/list
-import gleam/result
 import gleam/string
 import simplifile
 
@@ -10,7 +9,7 @@ pub type DialInstruction {
 }
 
 pub fn solve() {
-  let assert Ok(content) = simplifile.read("../input/day1.part1")
+  let assert Ok(content) = simplifile.read("input/day1.part1")
   let instructions = parse_instructions(content)
 
   let #(part1, part2) = process_instructions(instructions)

@@ -16,19 +16,53 @@ pub fn readFile(allocator: std.mem.Allocator, file_name: []const u8) ![][]const 
     const buffer = try file.readToEndAlloc(allocator, 1024 * 1024);
     defer allocator.free(buffer);
     
-    var lines = std.ArrayList([]const u8).init(allocator);
-    defer lines.deinit();
+    // Simple array list implementation for compatibility
+    var lines = try allocator.alloc([]const u8, 128);
+    var lines_count: usize = 0;
     
-    var iter = std.mem.split(u8, buffer, "\n");
-    while (iter.next()) |line| {
-        const trimmed = std.mem.trim(u8, line, "\r");
-        if (trimmed.len > 0) {
-            const owned_line = try allocator.dupe(u8, trimmed);
-            try lines.append(owned_line);
+    var start: usize = 0;
+    for (buffer, 0..) |byte, i| {
+        if (byte == '\n') {
+            const line = buffer[start..i];
+            if (line.len > 0 and line[line.len-1] == '\r') {
+                const trimmed = line[0..line.len-1];
+                if (trimmed.len > 0) {
+                    const owned_line = try allocator.dupe(u8, trimmed);
+                    if (lines_count >= lines.len) {
+                        const new_lines = try allocator.realloc(lines, lines.len * 2);
+                        lines = new_lines;
+                    }
+                    lines[lines_count] = owned_line;
+                    lines_count += 1;
+                }
+            } else if (line.len > 0) {
+                const owned_line = try allocator.dupe(u8, line);
+                if (lines_count >= lines.len) {
+                    const new_lines = try allocator.realloc(lines, lines.len * 2);
+                    lines = new_lines;
+                }
+                lines[lines_count] = owned_line;
+                lines_count += 1;
+            }
+            start = i + 1;
         }
     }
     
-    return lines.toOwnedSlice();
+    // Handle last line if it doesn't end with newline
+    if (start < buffer.len) {
+        const line = buffer[start..];
+        if (line.len > 0) {
+            const owned_line = try allocator.dupe(u8, line);
+            if (lines_count >= lines.len) {
+                const new_lines = try allocator.realloc(lines, lines.len * 2);
+                lines = new_lines;
+            }
+            lines[lines_count] = owned_line;
+            lines_count += 1;
+        }
+    }
+    
+    return allocator.realloc(lines, lines_count);
 }
 
 pub fn readFileToOwnedSlice(allocator: std.mem.Allocator, file_name: []const u8) ![]u8 {
