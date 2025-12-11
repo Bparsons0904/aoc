@@ -38,7 +38,13 @@ func Day10() {
 	part1Result := getPart1MachineInitializationResults(machineInstructions)
 	timer()
 
-	log.Info("day10", "part1", part1Result, "part2", 0)
+	part2Result := getPart2MachineInitializationResults(machineInstructions)
+
+	log.Info("day10", "part1", part1Result, "part2", part2Result)
+}
+
+func getPart2MachineInitializationResults(machineInstructions MachineInstructions) int {
+	return 0
 }
 
 func getPart1MachineInitializationResults(machineInstructions MachineInstructions) int {
@@ -104,14 +110,17 @@ func (mis *MachineInstructions) processMachineInstructions(filename string) {
 	for _, row := range file {
 		var mi MachineInstruction
 		instructions := strings.Split(row, " ")
-		// Strip the square brackets from the indicator
-		indicatorStr := instructions[0]
-		mi.Indicator = Indicator(indicatorStr[1 : len(indicatorStr)-1])
+		mi.calculateIndicators(instructions[0])
 		mi.calculateJoltageRequirements(instructions[len(instructions)-1])
 		mi.calculateToggleButtons(instructions[1 : len(instructions)-1])
 
 		mis.MachineInstructions = append(mis.MachineInstructions, mi)
 	}
+}
+
+func (mi *MachineInstruction) calculateIndicators(indicatorString string) {
+	indicator := indicatorString[1 : len(indicatorString)-1]
+	mi.Indicator = Indicator(indicator)
 }
 
 func (mi *MachineInstruction) calculateToggleButtons(toggleButtonsString []string) {
